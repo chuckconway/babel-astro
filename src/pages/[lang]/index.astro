@@ -1,0 +1,14 @@
+---
+export const prerender = true;
+import IndexPage from "../../components/pages/IndexPage.astro";
+import { DEFAULT_LANG } from "../../config.i18n";
+import { buildTranslatedLangPaths } from "../../utils/routeUtils";
+
+export async function getStaticPaths() {
+  return buildTranslatedLangPaths();
+}
+
+const { lang } = Astro.params;
+---
+
+<IndexPage lang={lang} /> 

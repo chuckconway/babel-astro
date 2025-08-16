@@ -1,0 +1,20 @@
+---
+export const prerender = true;
+import ArchivePage from "../../../components/pages/ArchivePage.astro";
+import { DEFAULT_LANG } from "../../../config.i18n";
+
+export async function getStaticPaths() {
+  const { SUPPORTED_LANGS } = await import("../../../config.i18n");
+  const paths: { params: { lang: string } }[] = [];
+  for (const { code } of SUPPORTED_LANGS) {
+    if (code === DEFAULT_LANG) continue;
+    paths.push({ params: { lang: code } });
+  }
+  return paths;
+}
+
+const { lang } = Astro.params;
+---
+
+<ArchivePage lang={lang} />
+

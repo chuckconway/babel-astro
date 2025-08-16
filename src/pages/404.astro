@@ -1,0 +1,64 @@
+---
+export const prerender = true;
+import Layout from "../layouts/Layout.astro";
+import SearchIsland from "../components/SearchIsland";
+import { t } from "../i18n";
+import { DEFAULT_LANG } from "../config.i18n";
+import { getSearchItemsForLang } from "../services/SearchService";
+
+const initial = (await getSearchItemsForLang(DEFAULT_LANG)).slice(0, 3).map(({ title, description, slug, ogImage, body, date, readingTimeMinutes }) => ({
+  title,
+  description,
+  slug,
+  ogImage: typeof ogImage === 'string' ? ogImage : undefined,
+  body,
+  date,
+  readingTimeMinutes,
+}));
+---
+
+<Layout title={t('page.not_found', DEFAULT_LANG)}>
+  <div class="mx-auto max-w-2xl space-y-8 py-20 text-center">
+    <div>
+      <h1 class="mb-4 text-6xl font-extrabold text-content">{t('404.oops', DEFAULT_LANG)}</h1>
+      <!-- Fun magnifying glass icon -->
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="mx-auto mb-4 h-24 w-24 text-muted-content"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M21 21l-4.35-4.35m1.35-4.65a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
+      <p class="mb-2 text-xl text-content">{t('404.tagline', DEFAULT_LANG)}</p>
+      <p class="text-muted-content">
+        {t('404.description', DEFAULT_LANG)}
+      </p>
+    </div>
+
+    <div>
+      <p class="mb-4 font-medium text-content">
+        {t('404.search_prompt', DEFAULT_LANG)}
+      </p>
+      <SearchIsland client:load autoFocus lang={DEFAULT_LANG} initial={initial} />
+    </div>
+
+    <div>
+      <a href="/" class="text-link-color hover:text-link-hover-color">{t('404.return_home', DEFAULT_LANG)}</a>
+    </div>
+  </div>
+  <script is:inline>
+    // Send a simple analytics event if gtag is available
+    if (window.gtag) {
+      window.gtag("event", "404", {
+        event_category: "Error",
+        event_label: window.location.pathname + window.location.search,
+      });
+    }
+  </script>
+</Layout>

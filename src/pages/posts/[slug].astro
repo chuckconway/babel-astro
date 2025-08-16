@@ -1,0 +1,13 @@
+---
+export const prerender = true;
+import PostPage from "../../components/pages/PostPage.astro";
+import { buildDefaultSlugPathsForCollection } from "../../utils/routeUtils";
+
+export async function getStaticPaths() {
+  return buildDefaultSlugPathsForCollection('posts');
+}
+
+const { slug } = Astro.params;
+---
+
+<PostPage slug={slug} />

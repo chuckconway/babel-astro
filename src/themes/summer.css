@@ -1,0 +1,15 @@
+/* Summer theme (light and dark variants) */
+.theme-summer {
+  --surface: 100% 0 100;
+  --muted: 93% 0 0;
+  --link-color: 68% 0.18 210;
+  --link-hover-color: 60% 0.22 210;
+}
+.dark.theme-summer {
+  --surface: 20% 0 0;
+  --muted: 30% 0 0;
+  --link-color: 80% 0.16 210;
+  --link-hover-color: 86% 0.16 210;
+}
+
+

@@ -1,0 +1,112 @@
+---
+import { SUPPORTED_LANGS, DEFAULT_LANG } from "../config.i18n";
+import { t } from "../i18n";
+import { absoluteUrl } from "../utils/urls";
+
+interface AdjacentLink {
+  href: string;
+  title: string;
+}
+
+interface Props {
+  prevLink?: AdjacentLink | null;
+  nextLink?: AdjacentLink | null;
+  title?: string;
+  showNav?: boolean;
+  showShare?: boolean;
+  showTopHr?: boolean;
+  showBottomHr?: boolean;
+  centerNav?: boolean;
+}
+
+// Determine current language from path
+const segments = Astro.url.pathname.split("/").filter(Boolean);
+const currentLang = SUPPORTED_LANGS.some((l) => l.code === segments[0]) ? segments[0] : DEFAULT_LANG;
+
+const {
+  prevLink = null,
+  nextLink = null,
+  title: postTitle = '',
+  showNav = true,
+  showShare = true,
+  showTopHr = true,
+  showBottomHr = true,
+  centerNav = false,
+} = Astro.props as Props;
+---
+
+<div class="prose mt-2 dark:prose-invert">
+  <div class="not-prose">
+    {showTopHr && (<hr class="mb-2 border-muted" />)}
+    {(showNav && (prevLink || nextLink)) && (
+      <nav aria-label="Post navigation" class={"mb-6 flex gap-4 " + (centerNav ? "items-center" : "items-stretch justify-between")}>
+        <div class={centerNav ? "" : "min-w-0 flex-1"}>
+          {prevLink && (
+            <a
+              href={prevLink.href}
+              rel="prev"
+              class="group inline-flex max-w-full items-center gap-2 rounded px-3 py-2 text-sm hover:underline"
+              aria-label={`${t('pagination.previous', currentLang)}: ${prevLink.title}`}
+            >
+              <span class="block">
+                <span class="block text-muted-content">{t('pagination.previous', currentLang)}</span>
+                <span class="block font-medium">{prevLink.title}</span>
+              </span>
+            </a>
+          )}
+        </div>
+        <div class={(centerNav ? "" : "min-w-0 flex-1 ") + (centerNav ? "" : "text-right") }>
+          {nextLink && (
+            <a
+              href={nextLink.href}
+              rel="next"
+              class="group inline-flex max-w-full items-center gap-2 rounded px-3 py-2 text-sm hover:underline"
+              aria-label={`${t('pagination.next', currentLang)}: ${nextLink.title}`}
+            >
+              <span class="block text-right">
+                <span class="block text-muted-content">{t('pagination.next', currentLang)}</span>
+                <span class="block font-medium">{nextLink.title}</span>
+              </span>
+            </a>
+          )}
+        </div>
+      </nav>
+    )}
+    {showShare && (
+      <footer class="text-sm text-muted-content">
+        {(() => {
+          const pageUrl = absoluteUrl(Astro.url.pathname);
+          const text = encodeURIComponent(postTitle || '');
+          const links = [
+            { href: `https://x.com/intent/tweet?url=${encodeURIComponent(pageUrl)}&text=${text}`, label: 'X' },
+            { href: `https://news.ycombinator.com/submitlink?u=${encodeURIComponent(pageUrl)}&t=${text}`, label: 'Hacker News' },
+            { href: `https://lobste.rs/stories/new?url=${encodeURIComponent(pageUrl)}&title=${text}`, label: 'Lobste.rs' },
+            { href: `https://www.reddit.com/submit?url=${encodeURIComponent(pageUrl)}&title=${text}`, label: 'Reddit' },
+          ];
+          return (
+            <div class="mt-4 flex flex-wrap items-baseline gap-2">
+              <span class="text-content/70">Share:</span>
+              <ul class="flex flex-wrap gap-2 list-none pl-0">
+                {links.map((l) => (
+                  <li>
+                    <a class="hover:underline" href={l.href} target="_blank" rel="noopener noreferrer">{l.label}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })()}
+        
+        {import.meta.env.PUBLIC_NEWSLETTER_URL && (
+          <div class="mt-4">
+            <a class="hover:underline" href={import.meta.env.PUBLIC_NEWSLETTER_URL} target="_blank" rel="noopener noreferrer">Subscribe to the newsletter</a>
+          </div>
+        )}
+      </footer>
+    )}
+    {showBottomHr && (<hr class="mt-6 border-muted" />)}
+  </div>
+</div>
+<style is:inline>
+  /* Use global link styles */
+</style>

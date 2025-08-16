@@ -1,0 +1,27 @@
+---
+import { DEFAULT_LANG } from "../config.i18n";
+
+interface Props {
+  lang?: string;
+  class?: string;
+}
+
+const {
+  lang = DEFAULT_LANG,
+  class: className = "mt-12 text-sm text-muted-content italic",
+} = Astro.props as Props;
+
+let AuthorContent;
+try {
+  AuthorContent = (await import(`../content/${lang}/pages/post-footer.md`)).default;
+} catch {
+  AuthorContent = (await import(`../content/pages/post-footer.md`)).default;
+}
+---
+
+<div class={className}>
+  <AuthorContent />
+  
+</div>
+
+

@@ -1,0 +1,14 @@
+---
+export const prerender = true;
+import SearchPage from "../../components/pages/SearchPage.astro";
+import { DEFAULT_LANG, SUPPORTED_LANGS } from "../../config.i18n";
+import { buildTranslatedLangPaths } from "../../utils/routeUtils";
+
+export async function getStaticPaths() {
+  return buildTranslatedLangPaths();
+}
+
+const { lang } = Astro.params;
+---
+
+<SearchPage lang={lang} /> 

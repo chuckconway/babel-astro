@@ -1,0 +1,100 @@
+---
+import { SITE } from "../config";
+import { SUPPORTED_LANGS, DEFAULT_LANG } from "../config.i18n";
+import { canonicalHref, hrefForLang } from "../utils/urls";
+import { t } from "../i18n";
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string | { src: string } | null;
+  type?: string;
+  canonical?: string;
+  url?: string;
+  pathname: string;
+}
+
+// Determine current language from URL to use appropriate site title
+const { pathname } = Astro.props as Props;
+const segments = pathname.split("/").filter(Boolean);
+const currentLang = SUPPORTED_LANGS.some((l) => l.code === segments[0]) ? segments[0] : DEFAULT_LANG;
+const siteTitle = t('site.title', currentLang);
+
+const {
+  title = siteTitle,
+  description = SITE.description,
+  image = `${SITE.site}/social.png`,
+  type = "website",
+  canonical,
+  url = SITE.site + pathname,
+} = Astro.props as Props;
+
+// Ensure brand name is included for better SEO
+const metaTitle = title.includes(siteTitle)
+  ? title
+  : `${title} | ${siteTitle}`;
+
+let effectiveImage: string;
+
+if (typeof image === "string") {
+  effectiveImage = image.startsWith("http") ? image : SITE.site + image;
+} else if (typeof image === "object" && image !== null && "src" in image) {
+  // Image() helper returns ImageMetadata object with .src relative to /_astro/
+  const imgSrc = image.src as string;
+  effectiveImage = imgSrc.startsWith("http") ? imgSrc : SITE.site + imgSrc;
+} else {
+  effectiveImage = `${SITE.site}/social.png`;
+}
+
+const canonicalUrl = canonicalHref(canonical, pathname);
+
+// JSON-LD: WebSite + SearchAction
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  url: SITE.site,
+  name: siteTitle,
+  publisher: {
+    "@type": "Organization",
+    name: siteTitle,
+    url: SITE.site,
+    logo: {
+      "@type": "ImageObject",
+      url: `${SITE.site}/logo/II_logo_128.png`,
+    },
+  },
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${SITE.site}/search?q={search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
+};
+---
+
+<title>{metaTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonicalUrl} />
+
+<!-- Hreflang alternate links -->
+{SUPPORTED_LANGS.map((l) => (
+  <link rel="alternate" hreflang={l.code} href={hrefForLang(pathname, l.code)} />
+))}
+
+<link rel="alternate" hreflang="x-default" href={canonicalUrl} />
+
+<!-- Open Graph -->
+<meta property="og:title" content={metaTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:type" content={type} />
+<meta property="og:url" content={canonicalUrl} />
+<meta property="og:image" content={effectiveImage} />
+
+<!-- Structured data: WebSite with SearchAction -->
+<!-- prettier-ignore -->
+<script type="application/ld+json">{JSON.stringify(websiteJsonLd)}</script>
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={metaTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={effectiveImage} />

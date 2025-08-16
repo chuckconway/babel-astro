@@ -1,0 +1,100 @@
+---
+import { DEFAULT_LANG } from "../config.i18n";
+import { t } from "../i18n";
+
+export interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  headings: Heading[];
+  lang?: string;
+}
+
+const { headings, lang = DEFAULT_LANG } = Astro.props as Props;
+// Show only h2 and h3 headings
+const items = headings.filter((h) => h.depth === 2 || h.depth === 3);
+---
+
+{
+  items.length > 0 && (
+    <div data-toc>
+      <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-content/50">
+        {t('toc.title', lang)}
+      </h2>
+      <nav id="toc-nav" aria-label={t('toc.aria_label', lang)} class="text-sm leading-6">
+        <ul class="space-y-2">
+          {items.map((h) => (
+            <li class={`ml-${h.depth === 3 ? 4 : 0}`}>
+              <a
+                href={`#${h.slug}`}
+                class="toc-link text-muted-content/50 hover:underline"
+              >
+                {h.text}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </div>
+  )
+}
+
+<script is:inline>
+  // Highlight the current section in the table of contents using IntersectionObserver
+  (() => {
+    const tocNav = document.getElementById('toc-nav');
+    if (!tocNav) return;
+
+    const links = Array.from(tocNav.querySelectorAll(".toc-link"));
+    if (!links.length) return;
+
+    const headings = links
+      .map((link) => {
+        const slug = link.getAttribute("href")?.slice(1);
+        return slug ? document.getElementById(slug) : null;
+      })
+      .filter(Boolean);
+
+    if (!headings.length) return;
+
+    const setActive = (slug) => {
+      links.forEach((link) => {
+        const isActive = link.getAttribute("href") === `#${slug}`;
+        if (isActive) {
+          link.setAttribute('aria-current', 'true');
+        } else {
+          link.removeAttribute('aria-current');
+        }
+      });
+    };
+
+    // Account for sticky header height so activation happens at the right time
+    const header = document.querySelector('header');
+    const headerHeight = header ? header.getBoundingClientRect().height : 64;
+    const topOffset = Math.max(0, Math.floor(headerHeight + 8));
+
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((e) => e.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (visible.length) {
+        setActive(visible[0].target.id);
+      }
+    }, {
+      rootMargin: `-${topOffset}px 0px -70% 0px`,
+      threshold: 0.1,
+    });
+
+    headings.forEach((h) => observer.observe(h));
+
+    // Sync highlight on hash changes and initial load
+    window.addEventListener('hashchange', () => {
+      const slug = location.hash.replace('#', '');
+      if (slug) setActive(slug);
+    });
+    if (location.hash) setActive(location.hash.replace('#', ''));
+  })();
+</script>

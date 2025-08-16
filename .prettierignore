@@ -1,0 +1,10 @@
+node_modules
+dist
+legacy_public_backup 
+src/layouts/Layout.astro
+src/components/SEO.astro
+src/components/pages/PostPage.astro
+src/content/posts/2017-10-30-workaround-for-template-parse-errors-in-angular.md
+src/content/es/posts/2017-10-30-workaround-for-template-parse-errors-in-angular.md
+src/pages/page/\[page\].astro
+src/pages/\[lang\]/page/\[page\].astro

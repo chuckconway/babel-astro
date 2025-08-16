@@ -1,0 +1,15 @@
+/* Spring theme (light and dark variants) */
+.theme-spring {
+  --surface: 100% 0 100;
+  --muted: 93% 0 0;
+  --link-color: 65% 0.16 170;
+  --link-hover-color: 58% 0.20 170;
+}
+.dark.theme-spring {
+  --surface: 20% 0 0;
+  --muted: 30% 0 0;
+  --link-color: 78% 0.16 170;
+  --link-hover-color: 86% 0.16 170;
+}
+
+

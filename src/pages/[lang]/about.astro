@@ -1,0 +1,14 @@
+---
+export const prerender = true;
+import AboutPage from "../../components/pages/AboutPage.astro";
+import { DEFAULT_LANG, SUPPORTED_LANGS } from "../../config.i18n";
+import { buildTranslatedLangPaths } from "../../utils/routeUtils";
+
+export async function getStaticPaths() {
+  return buildTranslatedLangPaths();
+}
+
+const { lang } = Astro.params;
+---
+
+<AboutPage lang={lang} /> 

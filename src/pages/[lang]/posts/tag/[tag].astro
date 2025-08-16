@@ -1,0 +1,14 @@
+---
+export const prerender = true;
+import TagResultsPage from "../../../../components/pages/TagResultsPage.astro";
+import { buildTranslatedTagPathsForCollection } from "../../../../utils/routeUtils";
+
+export async function getStaticPaths() {
+  return buildTranslatedTagPathsForCollection('posts');
+}
+
+const { lang, tag } = Astro.params;
+---
+<TagResultsPage tag={tag} lang={lang} />
+
+

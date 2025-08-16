@@ -1,0 +1,15 @@
+---
+export const prerender = true;
+import TagsPage from "../../../components/pages/TagsPage.astro";
+import { DEFAULT_LANG, SUPPORTED_LANGS } from "../../../config.i18n";
+import { buildTranslatedLangPaths } from "../../../utils/routeUtils";
+
+export async function getStaticPaths() {
+  return buildTranslatedLangPaths();
+}
+
+const { lang } = Astro.params;
+---
+
+<TagsPage lang={lang} />
+

@@ -1,0 +1,469 @@
+---
+// @ts-nocheck
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBars, faXmark, faMagnifyingGlass, faChevronDown } from "@fortawesome/free-solid-svg-icons";
+import { SUPPORTED_LANGS, DEFAULT_LANG } from "../config.i18n";
+import { t } from "../i18n";
+
+interface HeaderProps { lang?: string }
+const { lang } = Astro.props;
+const currentLang = SUPPORTED_LANGS.some((l) => l.code === (lang || "")) ? (lang as string) : DEFAULT_LANG;
+const langPrefix = currentLang === DEFAULT_LANG ? "" : `/${currentLang}`;
+const currentPath = (() => {
+  try {
+    const p = Astro.url.pathname || "/";
+    return p.endsWith("/") ? p : p + "/";
+  } catch {
+    return "/";
+  }
+})();
+const homeHref = `${langPrefix}/`;
+const aboutHref = `${langPrefix}/about/`;
+const searchHref = `${langPrefix}/search/`;
+const isHomeActive = currentPath === homeHref;
+const isAboutActive = currentPath === aboutHref || currentPath === `${langPrefix}/about`;
+const isSearchActive = currentPath === searchHref || currentPath === `${langPrefix}/search`;
+---
+
+<header
+  class="sticky top-0 z-50 border-b border-muted bg-surface/90 backdrop-blur"
+>
+  <div
+    class="mx-auto flex max-w-5xl items-center justify-between px-4 py-2 lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-8"
+  >
+    <div class="leading-tight">
+      <a href={`${langPrefix}/`} class="text-xl text-content no-underline hover:no-underline">{t('site.title', currentLang)}</a>
+    </div>
+    <!-- Desktop navigation -->
+    <nav
+      id="nav-desktop"
+      class="hidden sm:flex items-center gap-4 lg:justify-self-end text-content text-sm"
+      aria-label="Main navigation"
+    >
+      <a href={`${langPrefix}/`} class={`text-content whitespace-nowrap flex-shrink-0 uppercase tracking-wide text-xs ${isHomeActive ? 'font-bold' : ''}`} aria-current={isHomeActive ? 'page' : undefined}>
+        {t('page.index', currentLang)}
+      </a>
+      <a href={`${langPrefix}/about`} class={`text-content whitespace-nowrap flex-shrink-0 uppercase tracking-wide text-xs ${isAboutActive ? 'font-bold' : ''}`} aria-current={isAboutActive ? 'page' : undefined}>
+        {t('nav.about', currentLang)}
+      </a>
+      <a
+        id="open-search-desktop"
+        href={`${langPrefix}/search`}
+        data-no-fade
+        class={`text-content whitespace-nowrap flex-shrink-0 uppercase tracking-wide text-xs ${isSearchActive ? 'font-bold' : ''}`}
+        aria-current={isSearchActive ? 'page' : undefined}
+        aria-label={`${t('page.search', currentLang)} — ⌘+K`}
+        title={`${t('page.search', currentLang)} — ⌘+K`}
+      >
+        <FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4" />
+      </a>
+      <div class="relative">
+        <a
+          id="settings-button"
+          href="#"
+          aria-haspopup="menu"
+          aria-expanded="false"
+          class="text-content flex items-center gap-1 whitespace-nowrap flex-shrink-0 uppercase tracking-wide text-xs"
+        >
+          <span>{t('personalize.title', currentLang)}</span>
+          <FontAwesomeIcon icon={faChevronDown} className="settings-caret h-4 w-4 transition-transform duration-150" />
+        </a>
+        <div
+          id="settings-menu"
+          role="menu"
+          aria-label={t('personalize.title', currentLang)}
+          class="absolute right-0 top-full mt-2 hidden w-64 rounded-lg border border-muted bg-surface p-3 shadow-lg"
+        >
+          <div class="mb-3">
+            <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-content">{t('settings.language', currentLang)}</div>
+            <select
+              id="lang-select"
+              class="w-full rounded border border-muted bg-transparent px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              data-default-lang={DEFAULT_LANG}
+            >
+              {SUPPORTED_LANGS.map((l) => (
+                <option value={l.code}>{l.label}</option>
+              ))}
+            </select>
+          </div>
+          <div class="mb-3">
+            <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-content">{t('settings.theme', currentLang)}</div>
+            <select id="theme-mode-desktop" class="w-full rounded border border-muted bg-transparent px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+              <option value="system">{t('settings.system', currentLang)}</option>
+              <option value="light">{t('settings.light', currentLang)}</option>
+              <option value="dark">{t('settings.dark', currentLang)}</option>
+            </select>
+          </div>
+          <div>
+            <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-content">{t('settings.text_size', currentLang)}</div>
+            <div class="flex items-center gap-2" role="group" aria-label={t('settings.text_size', currentLang)}>
+              <button type="button" class="rounded px-2 py-1 text-sm hover:bg-muted" data-size="s">S</button>
+              <button type="button" class="rounded px-2 py-1 text-sm hover:bg-muted" data-size="m">M</button>
+              <button type="button" class="rounded px-2 py-1 text-sm hover:bg-muted" data-size="l">L</button>
+            </div>
+          </div>
+          
+          <div class="mt-3">
+            <label class="flex items-center gap-2">
+              <input id="toc-toggle-desktop" type="checkbox" class="h-4 w-4" checked />
+              <span class="text-sm">{t('personalize.show_toc', currentLang) || 'Show Table of Contents'}</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Mobile hamburger button -->
+    <button
+      id="mobile-nav-toggle"
+      class="sm:hidden rounded p-2 bg-surface/90 dark:bg-gray-900/90 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+      aria-label="Toggle navigation"
+      aria-expanded="false"
+    >
+      <FontAwesomeIcon icon={faBars} className="h-6 w-6 min-w-[1.5rem] min-h-[1.5rem] flex-none open-icon" />
+      <FontAwesomeIcon icon={faXmark} className="h-6 w-6 min-w-[1.5rem] min-h-[1.5rem] flex-none close-icon hidden" />
+    </button>
+
+    <!-- Theme select mobile only is inside the mobile menu -->
+
+    <!-- Mobile nav menu -->
+    <div
+      id="mobile-menu"
+      class="sm:hidden absolute left-0 right-0 top-full z-60 hidden max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-muted bg-surface shadow-lg p-2 space-y-1 text-base"
+    >
+      
+      <a href={`${langPrefix}/`} class={`flex w-full rounded px-4 py-3 text-xs uppercase tracking-wide text-content ${isHomeActive ? 'font-bold' : ''} hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary`} aria-current={isHomeActive ? 'page' : undefined}>
+        {t('page.index', currentLang)}
+      </a>
+      <a href={`${langPrefix}/about`} class={`flex w-full rounded px-4 py-3 text-xs uppercase tracking-wide text-content ${isAboutActive ? 'font-bold' : ''} hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary`} aria-current={isAboutActive ? 'page' : undefined}>
+        {t('nav.about', currentLang)}
+      </a>
+      <a
+        id="open-search-mobile"
+        href={`${langPrefix}/search`}
+        data-no-fade
+        class={`flex w-full rounded px-4 py-3 text-xs uppercase tracking-wide text-content ${isSearchActive ? 'font-bold' : ''} hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary`}
+        aria-current={isSearchActive ? 'page' : undefined}
+        aria-label={t('page.search', currentLang)}
+        title={t('page.search', currentLang)}
+      >
+        <FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4" />
+      </a>
+      <select
+        id="lang-select-mobile"
+        class="w-full rounded border border-muted bg-transparent px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+        data-default-lang={DEFAULT_LANG}
+      >
+        {SUPPORTED_LANGS.map((l) => (
+          <option value={l.code}>{l.label}</option>
+        ))}
+      </select>
+      <label class="mt-2 flex items-center gap-2 rounded px-4 py-3">
+        <span class="text-sm text-muted-content">{t('settings.theme', currentLang)}</span>
+        <select id="theme-mode-mobile" class="ml-auto rounded border border-muted bg-transparent px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary">
+          <option value="system">{t('settings.system', currentLang)}</option>
+          <option value="light">{t('settings.light', currentLang)}</option>
+          <option value="dark">{t('settings.dark', currentLang)}</option>
+        </select>
+      </label>
+      <div class="mt-3 px-2">
+        <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-content">{t('settings.text_size', currentLang)}</div>
+        <div class="flex items-center gap-2" role="group" aria-label={t('settings.text_size', currentLang)}>
+          <button type="button" class="rounded px-3 py-2 text-sm hover:bg-muted" data-size="s">S</button>
+          <button type="button" class="rounded px-3 py-2 text-sm hover:bg-muted" data-size="m">M</button>
+          <button type="button" class="rounded px-3 py-2 text-sm hover:bg-muted" data-size="l">L</button>
+        </div>
+      </div>
+      
+      <div class="mt-1">
+        <label class="flex items-center gap-2 rounded px-4 py-3 hover:bg-muted">
+          <input id="toc-toggle-mobile" type="checkbox" class="h-4 w-4" checked />
+          <span class="text-sm">{t('personalize.show_toc', currentLang) || 'Show Table of Contents'}</span>
+        </label>
+      </div>
+    </div>
+    <!-- End mobile additions -->
+  </div>
+  <style is:inline>
+    /* Ensure only the correct icon shows based on expanded state as a hard guard */
+    #mobile-nav-toggle[aria-expanded="false"] .close-icon { display: none; }
+    #mobile-nav-toggle[aria-expanded="true"] .open-icon { display: none; }
+  </style>
+  <script is:inline>
+    (function () {
+      // Settings dropdown (desktop)
+      (function () {
+        const btn = document.getElementById('settings-button');
+        const menu = document.getElementById('settings-menu');
+        if (!btn || !menu) return;
+        const caret = btn.querySelector('.settings-caret');
+        const open = () => { menu.classList.remove('hidden'); btn.setAttribute('aria-expanded', 'true'); if (caret) caret.style.transform = 'rotate(180deg)'; };
+        const close = () => { menu.classList.add('hidden'); btn.setAttribute('aria-expanded', 'false'); if (caret) caret.style.transform = 'rotate(0deg)'; };
+        const toggle = () => menu.classList.contains('hidden') ? open() : close();
+        btn.addEventListener('click', (e) => { e.preventDefault(); toggle(); });
+        // Open on Enter/Space when focused (as it's an anchor with role=button)
+        btn.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+        });
+        // Close on outside click or Escape
+        document.addEventListener('click', (e) => {
+          if (menu.classList.contains('hidden')) return;
+          if (btn.contains(e.target) || menu.contains(e.target)) return;
+          close();
+        });
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') close();
+        });
+        // Subtle open/close animation
+        menu.classList.add('transition-all','duration-150','ease-out');
+        const observer = new MutationObserver(() => {
+          const isOpen = !menu.classList.contains('hidden');
+          if (isOpen) {
+            menu.style.opacity = '1';
+            menu.style.transform = 'translateY(0)';
+          } else {
+            menu.style.opacity = '0';
+            menu.style.transform = 'translateY(4px)';
+          }
+        });
+        observer.observe(menu, { attributes: true, attributeFilter: ['class'] });
+      })();
+
+      function initLangSelect(selectId) {
+        const sel = document.getElementById(selectId);
+        if (!sel) return;
+        const SUPPORTED = Array.from(sel.options).map((o) => o.value);
+        const DEFAULT = sel.dataset.defaultLang || SUPPORTED[0] || 'en';
+        // Determine current lang from path
+        const segments = location.pathname.split("/").filter(Boolean);
+        const current = SUPPORTED.includes(segments[0]) ? segments[0] : DEFAULT;
+        try { sel.value = current; } catch { /* ignore assignment error */ }
+        sel.addEventListener("change", (e) => {
+          const newLang = e.target.value;
+          let parts = location.pathname.split("/").filter(Boolean);
+          if (SUPPORTED.includes(parts[0])) {
+            parts = parts.slice(1); // remove current lang segment
+          }
+          if (newLang !== DEFAULT) {
+            parts.unshift(newLang);
+          }
+          const newPath = "/" + parts.join("/");
+          location.assign(newPath + location.search + location.hash);
+        });
+      }
+      initLangSelect('lang-select');
+      initLangSelect('lang-select-mobile');
+    })();
+
+    // Mobile menu toggle
+    (function () {
+      const toggleBtn = document.getElementById("mobile-nav-toggle");
+      const menu = document.getElementById("mobile-menu");
+      if (!toggleBtn || !menu) return;
+      const openIcon = toggleBtn.querySelector(".open-icon");
+      const closeIcon = toggleBtn.querySelector(".close-icon");
+      toggleBtn.addEventListener("click", () => {
+        const isHidden = menu.classList.toggle("hidden");
+        openIcon.classList.toggle("hidden", !isHidden);
+        closeIcon.classList.toggle("hidden", isHidden);
+        toggleBtn.setAttribute('aria-expanded', String(!isHidden));
+      });
+
+      // Close menu when clicking outside of it
+      document.addEventListener("click", (e) => {
+        if (menu.classList.contains("hidden")) return;
+        if (menu.contains(e.target) || toggleBtn.contains(e.target)) return;
+        menu.classList.add("hidden");
+        openIcon.classList.remove("hidden");
+        closeIcon.classList.add("hidden");
+        toggleBtn.setAttribute('aria-expanded', 'false');
+      });
+      // Focus trap and restore for open mobile menu
+      let lastFocused = null;
+      const trap = (e) => {
+        if (menu.classList.contains('hidden')) return;
+        if (e.key !== 'Tab') return;
+        const focusables = menu.querySelectorAll('a[href], button, select, [tabindex]:not([tabindex="-1"])');
+        const els = Array.from(focusables).filter((el) => !el.hasAttribute('disabled'));
+        if (!els.length) return;
+        const first = els[0];
+        const last = els[els.length - 1];
+        const active = document.activeElement;
+        if (e.shiftKey && active === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+      };
+      const onEsc = (e) => { if (e.key === 'Escape' && !menu.classList.contains('hidden')) { menu.classList.add('hidden'); openIcon.classList.remove('hidden'); closeIcon.classList.add('hidden'); toggleBtn.focus(); } };
+      toggleBtn.addEventListener('click', () => {
+        const isHidden = menu.classList.contains('hidden');
+        if (!isHidden) {
+          // menu just opened
+          lastFocused = document.activeElement;
+          const first = menu.querySelector('a, button, select, [tabindex]:not([tabindex="-1"])');
+          if (first) { setTimeout(() => first.focus(), 0); }
+          document.addEventListener('keydown', trap);
+          document.addEventListener('keydown', onEsc);
+        } else {
+          // closed
+          document.removeEventListener('keydown', trap);
+          document.removeEventListener('keydown', onEsc);
+          if (lastFocused instanceof HTMLElement) { lastFocused.focus(); }
+        }
+      });
+    })();
+    // Open spotlight search from header triggers
+    (function () {
+      const d = document.getElementById('open-search-desktop');
+      const m = document.getElementById('open-search-mobile');
+      // Click opens overlay only; never navigate
+      const bindClick = (el) => {
+        if (!el) return;
+        el.addEventListener('click', (e) => {
+          try {
+            if ((window && (window).__searchOverlayReady) === true) {
+              e.preventDefault();
+              e.stopPropagation();
+              window.dispatchEvent(new Event('open-search'));
+              return;
+            }
+          } catch { /* ignore */ }
+          // Fallback: allow navigation to /search if overlay isn't ready
+        });
+      };
+      bindClick(d);
+      bindClick(m);
+
+      // Optional: prefetch search index on hover/focus (does not open overlay)
+      let prefetched = false;
+      const prefetch = () => {
+        if (prefetched) return;
+        prefetched = true;
+        try {
+          const sel = document.getElementById('lang-select');
+          let SUPPORTED = [];
+          let DEFAULT = 'en';
+          if (sel && 'options' in sel) {
+            const options = /** @type {HTMLSelectElement} */ (sel).options;
+            SUPPORTED = Array.from(options).map((o) => o.value);
+          }
+          if (sel && 'dataset' in sel && sel.dataset && sel.dataset.defaultLang) {
+            DEFAULT = sel.dataset.defaultLang;
+          } else if (SUPPORTED[0]) {
+            DEFAULT = SUPPORTED[0];
+          }
+          const parts = location.pathname.split('/').filter(Boolean);
+          const current = SUPPORTED.includes(parts[0]) ? parts[0] : DEFAULT;
+          const prefix = current !== DEFAULT ? `/${current}` : '';
+          fetch(`${prefix}/api/search-index.json`, { credentials: 'same-origin' }).catch(() => {});
+        } catch { /* ignore */ }
+      };
+      if (d) { d.addEventListener('mouseenter', prefetch, { once: true }); d.addEventListener('focus', prefetch, { once: true }); }
+      if (m) { m.addEventListener('mouseenter', prefetch, { once: true }); m.addEventListener('focus', prefetch, { once: true }); }
+    })();
+    // Theme mode selects (Light/Dark/System)
+    (function () {
+      const KEY = 'themeMode';
+      const setMode = (mode) => {
+        if (typeof window.__setThemeMode === 'function') window.__setThemeMode(mode);
+      };
+      const initSelect = (sel) => {
+        if (!sel) return;
+        // Initialize current value
+        try {
+          sel.value = localStorage.getItem(KEY) || 'system';
+        } catch { sel.value = 'system'; }
+        sel.addEventListener('change', (e) => setMode(e.target.value));
+      };
+      initSelect(document.getElementById('theme-mode-desktop'));
+      initSelect(document.getElementById('theme-mode-mobile'));
+      // Keep selects in sync on storage changes
+      window.addEventListener('storage', (e) => {
+        if (e.key !== KEY) return;
+        const next = e.newValue || 'system';
+        const a = document.getElementById('theme-mode-desktop');
+        const b = document.getElementById('theme-mode-mobile');
+        if (a) a.value = next;
+        if (b) b.value = next;
+      });
+    })();
+
+    // Text size controls (S/M/L) – persist and apply class on <html>
+    (function () {
+      const KEY = 'textSize'; // 's' | 'm' | 'l'
+      const html = document.documentElement;
+      const desktopRoot = document.getElementById('settings-menu');
+      const mobileRoot = document.getElementById('mobile-menu');
+      const updateGroup = (root, v) => {
+        if (!root) return;
+        root.querySelectorAll('[data-size]')?.forEach((btn) => {
+          const isActive = btn.getAttribute('data-size') === v;
+          btn.setAttribute('aria-pressed', String(isActive));
+          btn.classList.toggle('bg-muted', isActive);
+        });
+      };
+      const apply = (v) => {
+        html.classList.remove('text-size-s', 'text-size-m', 'text-size-l');
+        const val = v === 's' || v === 'l' ? v : 'm';
+        html.classList.add(`text-size-${val}`);
+        updateGroup(desktopRoot, val);
+        updateGroup(mobileRoot, val);
+      };
+        try {
+        const saved = localStorage.getItem(KEY) || 'm';
+        apply(saved);
+      } catch { /* ignore */ apply('m'); }
+      const bind = (root) => {
+        if (!root) return;
+        root.querySelectorAll('[data-size]')?.forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const v = btn.getAttribute('data-size');
+            try { localStorage.setItem(KEY, v); } catch { /* ignore */ }
+            apply(v);
+          });
+        });
+      };
+      bind(desktopRoot);
+      bind(mobileRoot);
+      // Cross-tab sync
+      window.addEventListener('storage', (e) => {
+        if (e.key === KEY) apply(e.newValue || 'm');
+      });
+    })();
+
+    
+
+    // Table of Contents toggle – default ON; when OFF, hide elements with [data-toc]
+    (function () {
+      const KEY = 'tocHidden'; // '1' hidden, '0' shown
+      const html = document.documentElement;
+      const apply = (hidden) => html.classList.toggle('hide-toc', !!hidden);
+      let hidden = false;
+      try { hidden = localStorage.getItem(KEY) === '1'; } catch { hidden = false; }
+      apply(hidden);
+      const setChecks = (v) => {
+        const d = document.getElementById('toc-toggle-desktop');
+        const m = document.getElementById('toc-toggle-mobile');
+        if (d) d.checked = !v;
+        if (m) m.checked = !v;
+      };
+      setChecks(hidden);
+      const bind = (el) => {
+        if (!el) return;
+        el.addEventListener('change', () => {
+          const shouldShow = el.checked;
+          const nextHidden = !shouldShow;
+          try { localStorage.setItem(KEY, nextHidden ? '1' : '0'); } catch { /* ignore */ }
+          apply(nextHidden);
+          setChecks(nextHidden);
+        });
+      };
+      bind(document.getElementById('toc-toggle-desktop'));
+      bind(document.getElementById('toc-toggle-mobile'));
+      window.addEventListener('storage', (e) => {
+        if (e.key !== KEY) return;
+        const v = e.newValue === '1';
+        apply(v);
+        setChecks(v);
+      });
+    })();
+  </script>
+</header>

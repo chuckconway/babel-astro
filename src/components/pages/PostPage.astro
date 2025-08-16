@@ -1,0 +1,426 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PostFooter from "../PostFooter.astro";
+import AuthorFooter from "../AuthorFooter.astro";
+import { Image } from "astro:assets";
+import TableOfContents from "../TableOfContents.astro";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faWandMagicSparkles } from "@fortawesome/free-solid-svg-icons";
+import { getEntry, render as renderEntry } from "astro:content";
+import { DEFAULT_LANG } from "../../config.i18n";
+import { postPath, tagPath, absoluteUrl, indexPath } from "../../utils/urls";
+import { SITE } from "../../config";
+import { t } from "../../i18n";
+import { formatLongDate } from "../../utils/date";
+import { getReadingTime } from "../../utils/readingTime";
+import { getSortedPosts, getAdjacentByDate, getBasicRelatedByTags } from '../../services/PostService';
+
+interface Props {
+  slug: string;
+  lang?: string;
+}
+
+const { slug, lang = DEFAULT_LANG } = Astro.props as Props;
+
+const collectionName = lang === DEFAULT_LANG ? "posts" : `posts_${lang}`;
+let post = await getEntry(collectionName, slug);
+
+// Fallback to default language if translation missing
+if (!post) {
+  post = await getEntry("posts", slug);
+}
+
+if (!post) {
+  throw new Error("Post not found");
+}
+
+const { Content, headings } = await renderEntry(post);
+const timeToRead = getReadingTime(post.body, lang);
+
+// Related posts within current language (fallback handled above for main post)
+const collection = await getSortedPosts(lang);
+const rawRelated = getBasicRelatedByTags(post, collection);
+const relatedPosts = rawRelated.map((p) => ({ slug: p.id, title: p.data.title, reading: getReadingTime(p.body, lang) }));
+
+// Adjacent posts (previous/next) within the current language collection
+const { previous: prevPost, next: nextPost } = getAdjacentByDate(collection, post.id);
+
+const prevLink = prevPost
+  ? { href: postPath(lang, prevPost.id), title: prevPost.data.title as string }
+  : null;
+const nextLink = nextPost
+  ? { href: postPath(lang, nextPost.id), title: nextPost.data.title as string }
+  : null;
+
+// JSON-LD BlogPosting structured data
+const jsonLdImages = (() => {
+  const og = post.data.ogImage as unknown;
+  if (!og) return [] as string[];
+  if (typeof og === 'string') return [absoluteUrl(og)];
+  if (typeof og === 'object' && og && 'src' in og) return [absoluteUrl((og as any).src as string)];
+  return [] as string[];
+})();
+
+const blogPostingJson = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  headline: String(post.data.title),
+  description: String(post.data.description || ''),
+  datePublished: new Date(post.data.date).toISOString(),
+  dateModified: new Date(post.data.date).toISOString(),
+  publisher: {
+    "@type": "Organization",
+    name: SITE.title,
+    url: SITE.site,
+    logo: {
+      "@type": "ImageObject",
+      url: absoluteUrl('/logo/II_logo_128.png'),
+    },
+  },
+  author: {
+    "@type": "Person",
+    name: 'Chuck Conway',
+    url: SITE.site,
+  },
+  mainEntityOfPage: {
+    "@type": "WebPage",
+    "@id": absoluteUrl(postPath(lang, post.id)),
+  },
+  image: jsonLdImages,
+};
+
+// Typed tags for IDE linting in template
+const postTags: string[] = (post.data.tags ?? []) as string[];
+
+// Author footer rendered by component
+
+---
+
+<Layout
+  title={post.data.title}
+  description={post.data.description}
+  image={post.data.ogImage}
+  canonical={lang === DEFAULT_LANG ? post.data.canonicalUrl : (post.data.canonicalUrl ?? `/posts/${slug}/`)}
+  readingProgress={true}
+    sidebarSticky={true}
+    sidebarPosition="right"
+    sidebarTopClass="lg:top-40"
+>
+  <fragment slot="head">
+    {prevLink && (
+      <link rel="prefetch" href={prevLink.href} as="document" />
+    )}
+    {nextLink && (
+      <link rel="prefetch" href={nextLink.href} as="document" />
+    )}
+  </fragment>
+  <!-- Breadcrumbs removed per request -->
+
+  <article class="prose prose-lg mx-auto p-4 dark:prose-invert text-content" data-copy-msg={t('announce.link_copied', lang)}>
+    {/* Top-of-post header: title, date, time, tags above image (all viewports) */}
+    <div class="mb-4">
+      <p class="eyebrow mb-1">{t('page.posts', lang)}</p>
+      <h1 class="mb-1 text-content quiet-bold">{post.data.title}</h1>
+      <p class="subtitle">{formatLongDate(post.data.date, lang)} • {timeToRead}</p>
+      {postTags.length > 0 && (
+        <div class="mt-2 flex flex-wrap gap-2">
+          {postTags.map((tag) => (
+            <a href={tagPath(lang, tag)} class="inline-block text-xs text-muted-content opacity-50 hover:opacity-80 hover:underline">#{String(tag)}</a>
+          ))}
+        </div>
+      )}
+    </div>
+
+    {/* TOC temporarily removed for experiment */}
+
+    {
+      post.data.ogImage &&
+        (typeof post.data.ogImage === "object" && "src" in post.data.ogImage ? (
+          <Image src={post.data.ogImage} alt={post.data.title} class="my-6 w-full rounded" loading="eager" decoding="async" />
+        ) : (
+          <img src={post.data.ogImage as string} alt={post.data.title} class="my-6 w-full rounded" loading="eager" decoding="async" />
+        ))
+    }
+
+    <Content />
+
+    {Array.isArray((post.data as any).notes) && (post.data as any).notes.length > 0 && (
+      <section class="mt-12">
+        <h2 class="text-base font-semibold text-muted-content">{t('notes.heading', lang)}</h2>
+        <ul class="mt-3 space-y-2">
+          {(post.data as any).notes.map((n: any) => (
+            <li>
+              {n.href ? (
+                <a href={n.href} class="hover:underline external-link" target="_blank" rel="noopener noreferrer">{n.text}</a>
+              ) : (
+                <span>{n.text}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    {/* Bottom-of-post tags removed per request */}
+
+    <AuthorFooter lang={lang} />
+    <a href="#" class="mt-12 block text-center text-sm text-link-color hover:text-link-hover-color hover:underline">
+      {t('misc.back_to_top', lang)}
+    </a>
+
+    {/* Top rule, vertically centered prev/next nav, then bottom rule */}
+    <div class="mt-6 border-t border-muted"></div>
+    {(prevLink || nextLink) && (
+      <div class="not-prose py-4">
+        <PostFooter prevLink={prevLink} nextLink={nextLink} title={String(post.data.title)} showNav={true} showShare={false} showTopHr={false} showBottomHr={false} centerNav={false} />
+      </div>
+    )}
+    <div class="border-t border-muted"></div>
+    <section class="pt-8">
+      <h2 class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-content">
+        {t('related.heading', lang)}
+      </h2>
+      <ul
+        id="smart-related"
+        class="pl-5 space-y-1"
+        data-current-slug={post.id}
+        data-lang={lang}
+        data-default-lang={DEFAULT_LANG}
+      ></ul>
+      <p id="smart-related-status" class="mt-2 text-xs text-muted-content" aria-live="polite">
+        {t('related.loading', lang)}
+      </p>
+    </section>
+
+    <PostFooter prevLink={prevLink} nextLink={nextLink} title={String(post.data.title)} showNav={false} />
+  </article>
+
+  <script type="module" src="/src/scripts/zoom.ts"></script>
+
+  <!-- prettier-ignore -->
+  <script type="application/ld+json">{JSON.stringify(blogPostingJson)}</script>
+  <!-- prettier-ignore -->
+  <script type="application/ld+json">{JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: (
+      [
+        { name: t('page.index', lang), item: absoluteUrl(indexPath(lang)) },
+        ...(Array.isArray(post.data.tags) && post.data.tags.length > 0
+          ? [{ name: String(post.data.tags[0]), item: absoluteUrl(tagPath(lang, String(post.data.tags[0]))) }]
+          : []),
+        { name: String(post.data.title), item: absoluteUrl(postPath(lang, post.id)) },
+      ]
+    ).map((it, i) => ({ "@type": "ListItem", position: i + 1, item: it })),
+  })}</script>
+
+  <script is:inline>
+    // Inline footnote pop-ups (paragraph anchors removed to avoid layout shift/overflow)
+    (() => {
+      const article = document.querySelector("article.prose");
+      if (!article) return;
+
+      // Inline footnote popups
+      const pop = document.createElement('div');
+      pop.className = 'fn-pop fixed z-50 max-w-[min(80vw,28rem)] rounded border border-muted bg-muted/30 p-3 shadow text-sm hidden';
+      document.body.appendChild(pop);
+
+      let currentRef = null;
+      const hidePop = () => {
+        pop.classList.add('hidden');
+        pop.innerHTML = '';
+        if (currentRef) currentRef.setAttribute('aria-expanded', 'false');
+        currentRef = null;
+      };
+
+      const showPop = (ref, html) => {
+        pop.innerHTML = html;
+        const rect = ref.getBoundingClientRect();
+        const top = Math.min(window.innerHeight - 20, rect.bottom + 8);
+        const left = Math.min(window.innerWidth - 20, rect.left);
+        pop.style.top = `${Math.max(8, top + window.scrollY)}px`;
+        pop.style.left = `${Math.max(8, left + window.scrollX)}px`;
+        pop.classList.remove('hidden');
+      };
+
+      article.addEventListener('click', (e) => {
+        const a = e.target instanceof Element ? e.target.closest('a[href^="#fn"]') : null;
+        if (!a) return;
+        const id = a.getAttribute('href')?.slice(1) || '';
+        const def = id ? document.getElementById(id) : null;
+        if (!def) return;
+        e.preventDefault();
+        a.setAttribute('aria-expanded', 'true');
+        currentRef = a;
+        // Pull definition content (text within li, excluding backref links if present)
+        const clone = def.cloneNode(true);
+        // remove any backref links
+        clone.querySelectorAll('a[href^="#fnref"]').forEach((n) => n.remove());
+        showPop(a, clone.innerHTML);
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') hidePop();
+      });
+      document.addEventListener('click', (e) => {
+        if (!currentRef) return;
+        if (e.target instanceof Element && (e.target.closest('.fn-pop') || e.target.closest('a[href^="#fn"]'))) return;
+        hidePop();
+      });
+    })();
+  </script>
+
+  <script is:inline>
+    // Scroll-position memory per post
+    (() => {
+      const KEY = `scroll:${location.pathname}`;
+
+      function tryRestore() {
+        if (location.hash) return; // anchor takes precedence
+        const raw = localStorage.getItem(KEY);
+        if (!raw) return;
+        try {
+          const data = JSON.parse(raw);
+          const y = typeof data?.y === 'number' ? data.y : 0;
+          if (y <= 0) return;
+          const maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+          window.scrollTo(0, Math.min(y, maxY));
+        } catch {
+          // ignore bad JSON
+        }
+      }
+
+      // Save (throttled)
+      let t = 0;
+      const save = () => {
+        try {
+          localStorage.setItem(KEY, JSON.stringify({ y: window.scrollY, ts: Date.now() }));
+        } catch {
+          /* ignore quota */
+        }
+      };
+      const onScroll = () => {
+        if (t) return;
+        t = window.setTimeout(() => {
+          t = 0;
+          save();
+        }, 500);
+      };
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('beforeunload', save);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') save();
+      });
+
+      // Restore after layout settles
+      if (document.readyState === 'complete') {
+        requestAnimationFrame(tryRestore);
+      } else {
+        window.addEventListener('load', () => requestAnimationFrame(tryRestore), { once: true });
+      }
+    })();
+  </script>
+
+  <script is:inline>
+    // Add copy-link "#" icon to headings (h2/h3) with aria-live announcement.
+    // The button renders inside the heading and only appears on hover/focus to avoid shifting text.
+    (() => {
+      const article = document.querySelector("article");
+      if (!article) return;
+      const COPY_MSG = article.getAttribute('data-copy-msg') || 'Link copied to clipboard';
+
+      // Create a polite live region once per page
+      let live = document.getElementById('a11y-live');
+      if (!live) {
+        live = document.createElement('div');
+        live.id = 'a11y-live';
+        live.setAttribute('aria-live', 'polite');
+        live.className = 'sr-only';
+        document.body.appendChild(live);
+      }
+      const announce = (msg) => {
+        if (!live) return;
+        // Clear then set to ensure screen readers announce
+        live.textContent = '';
+        setTimeout(() => { live.textContent = String(msg || ''); }, 0);
+      };
+
+      const headings = article.querySelectorAll("h2[id], h3[id]");
+      headings.forEach((h) => {
+        if (h.querySelector(".heading-anchor")) return;
+        h.classList.add("group");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.setAttribute("aria-label", "Copy link");
+        btn.className =
+          "heading-anchor ml-2 text-gray-400 hover:text-muted-content focus:text-muted-content opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity";
+        btn.textContent = "#";
+        btn.addEventListener("click", async (e) => {
+          e.preventDefault();
+          const id = h.id;
+          const url = `${location.origin}${location.pathname}#${id}`;
+          try {
+            await navigator.clipboard.writeText(url);
+            btn.textContent = "✓";
+            announce(COPY_MSG);
+            setTimeout(() => (btn.textContent = "#"), 2000);
+          } catch {
+            location.hash = id;
+            announce(COPY_MSG);
+          }
+        });
+        h.appendChild(btn);
+      });
+    })();
+  </script>
+
+  {/* TOC scrollspy removed while TOC is disabled */}
+
+  <script type="module">
+    (async () => {
+      try {
+        const ul = document.getElementById('smart-related');
+        const status = document.getElementById('smart-related-status');
+        if (!ul || !status) return;
+        const { loadRelatedIndex, scoreRelated } = await import('/src/services/RelatedService.ts');
+        const idx = await loadRelatedIndex('/api/related-index.json');
+        const currentSlug = ul.getAttribute('data-current-slug') || '';
+        const current = idx.docs.find(d => d.slug === currentSlug);
+        if (!current) return;
+        const best = scoreRelated(current, idx.docs);
+        ul.innerHTML = '';
+        for (const r of best) {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          const langCode = ul.getAttribute('data-lang') || '';
+          const defaultLang = ul.getAttribute('data-default-lang') || '';
+          const prefix = langCode !== defaultLang ? `/${langCode}` : '';
+          a.href = `${prefix}/posts/${r.slug}/`;
+          a.className = 'hover:underline text-sm';
+          a.textContent = r.title;
+          li.appendChild(a);
+          ul.appendChild(li);
+        }
+        status.classList.add('hidden');
+      } catch {
+        const status = document.getElementById('smart-related-status');
+        if (status) {
+          status.textContent = document.documentElement.lang === 'es'
+            ? 'Las publicaciones relacionadas no están disponibles en este momento.'
+            : 'Related posts are unavailable right now.';
+        }
+      }
+    })();
+  </script>
+
+  <!-- Focus mode logic removed -->
+
+  
+
+  <aside slot="sidebar" data-toc>
+    <TableOfContents headings={headings} lang={lang} />
+  </aside>
+</Layout>
+
+

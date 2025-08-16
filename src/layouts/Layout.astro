@@ -1,0 +1,526 @@
+---
+// @ts-nocheck
+import "../styles/global.css";
+import SEO from "../components/SEO.astro";
+import { SITE } from "../config";
+import { DEFAULT_LANG, SUPPORTED_LANGS } from "../config.i18n";
+import { DEFAULT_THEME } from "../config";
+import { t } from "../i18n";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import SearchOverlay from "../components/SearchOverlay";
+import BackToTopButton from "../components/BackToTopButton";
+import { hrefForLang } from "../utils/urls";
+import fs from "node:fs";
+import path from "node:path";
+import 'katex/dist/katex.min.css';
+// Preload Inter font files to reduce layout shift when the font applies
+import inter400Url from "@fontsource/inter/files/inter-latin-400-normal.woff2?url";
+import inter500Url from "@fontsource/inter/files/inter-latin-500-normal.woff2?url";
+import inter600Url from "@fontsource/inter/files/inter-latin-600-normal.woff2?url";
+import inter700Url from "@fontsource/inter/files/inter-latin-700-normal.woff2?url";
+
+/* Dynamically load the requested theme CSS so builds fail fast if the file is missing */
+let themeCss = "";
+try {
+  const themePath = path.resolve(process.cwd(), "src", "themes", `${DEFAULT_THEME}.css`);
+  themeCss = fs.readFileSync(themePath, "utf8");
+} catch {
+  throw new Error(`Theme \"${DEFAULT_THEME}\" not found. Expected file: src/themes/${DEFAULT_THEME}.css`);
+}
+
+// Favicon handled via a single site logo; no fallbacks
+
+// Allow pages to opt-in to the reading progress bar
+const {
+  title = SITE.title,
+  description,
+  image,
+  canonical,
+  readingProgress = false,
+  sidebarSticky = true,
+  sidebarTopClass = 'lg:top-56',
+  sidebarPosition = 'right',
+} = Astro.props;
+
+// Resolve current language from the pathname so <html lang> stays correct
+const segments = Astro.url.pathname.split("/").filter(Boolean);
+const currentLang = SUPPORTED_LANGS.some((l) => l.code === segments[0]) ? segments[0] : DEFAULT_LANG;
+
+// Detect whether the caller provided sidebar content
+const hasSidebar = Astro.slots.has("sidebar");
+---
+
+<!doctype html>
+<html lang={currentLang} class={DEFAULT_THEME}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d0d0d" />
+    <!-- Use local font to avoid hard-coded external URL; configured via Tailwind fontFamily -->
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/logo/site-logo.svg" />
+    <!-- Preload primary text fonts to avoid header title size flash -->
+    <link rel="preload" as="font" href={inter400Url} type="font/woff2" crossorigin />
+    <link rel="preload" as="font" href={inter600Url} type="font/woff2" crossorigin />
+    <SEO
+      title={title}
+      description={description}
+      image={image}
+      canonical={canonical}
+      pathname={Astro.url.pathname}
+    />
+    <slot name="head" />
+    {SUPPORTED_LANGS.map(({ code }) => (
+      <link
+        rel="alternate"
+        hreflang={code}
+        href={hrefForLang(Astro.url.pathname, code)}
+      />
+    ))}
+    <link
+      rel="alternate"
+      hreflang="x-default"
+      href={hrefForLang(Astro.url.pathname, DEFAULT_LANG)}
+    />
+    <link rel="alternate" type="application/rss+xml" href="/rss.xml" title={t('site.title', DEFAULT_LANG)} />
+    {SUPPORTED_LANGS.filter(({ code }) => code !== DEFAULT_LANG).map(({ code }) => (
+      <link
+        rel="alternate"
+        type="application/rss+xml"
+        href={`/${code}/rss.xml`}
+        title={`${t('site.title', code)} (${code})`}
+      />
+    ))}
+    <!-- prettier-ignore -->
+    <style is:inline>{themeCss}</style>
+    <!-- Prefetch rules temporarily removed to satisfy linter/parser -->
+    <!-- Opportunistically modulepreload Astro island chunks (renderer + component) -->
+    <script is:inline>
+      (() => {
+        try {
+          const seen = new Set();
+          const add = (href) => {
+            if (!href || seen.has(href)) return;
+            seen.add(href);
+            const link = document.createElement('link');
+            link.rel = 'modulepreload';
+            link.href = href;
+            document.head.appendChild(link);
+          };
+          const scan = (root) => {
+            root.querySelectorAll('astro-island[component-url]').forEach((el) => {
+              add(el.getAttribute('component-url'));
+              const r = el.getAttribute('renderer-url');
+              if (r) add(r);
+            });
+          };
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => scan(document), { once: true });
+          } else {
+            scan(document);
+          }
+          const obs = new MutationObserver((muts) => {
+            for (const m of muts) {
+              m.addedNodes.forEach((n) => {
+                if (!(n instanceof Element)) return;
+                if (n.tagName.toLowerCase() === 'astro-island') {
+                  add(n.getAttribute('component-url'));
+                  const r = n.getAttribute('renderer-url');
+                  if (r) add(r);
+                } else {
+                  scan(n);
+                }
+              });
+            }
+          });
+          obs.observe(document.documentElement, { childList: true, subtree: true });
+        } catch { /* ignore */ }
+      })();
+    </script>
+    {import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN && (
+      <script
+        defer
+        src="https://static.cloudflareinsights.com/beacon.min.js"
+        data-cf-beacon={JSON.stringify({ token: import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN })}
+      />
+    )}
+    <!-- Preload class for initial fade-in (respects reduced motion) -->
+    <script is:inline>
+      (() => {
+        if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+          if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            document.documentElement.classList.add('preload');
+          }
+        }
+      })();
+    </script>
+    <!-- prettier-ignore -->
+    <script id="lang-config" type="application/json">{JSON.stringify({ supported: SUPPORTED_LANGS.map((l)=>l.code), defaultLang: DEFAULT_LANG })}</script>
+    <script is:inline>
+      (() => {
+        const KEY = 'themeMode'; // 'light' | 'dark' | 'system'
+        const html = document.documentElement;
+        const media = window.matchMedia('(prefers-color-scheme: dark)');
+
+        function apply(mode) {
+          const effectiveDark = mode === 'dark' || (mode === 'system' && media.matches);
+          html.classList.toggle('dark', !!effectiveDark);
+        }
+
+        // Initial mode before paint
+        let mode = 'system';
+        try {
+          const saved = localStorage.getItem(KEY);
+          if (saved === 'light' || saved === 'dark' || saved === 'system') mode = saved;
+        } catch { /* ignore */ }
+        apply(mode);
+
+        // React to OS changes only when in system mode
+        try {
+          if (media && media.addEventListener) {
+            media.addEventListener('change', () => {
+              try { if ((localStorage.getItem(KEY) || 'system') === 'system') apply('system'); } catch { /* ignore */ }
+            });
+          }
+        } catch { /* ignore */ }
+
+        // Expose setter for UI controls
+        window.__setThemeMode = function(next) {
+          if (next !== 'light' && next !== 'dark' && next !== 'system') return;
+          try { localStorage.setItem(KEY, next); } catch { /* ignore */ }
+          apply(next);
+        };
+
+        // Cross-tab sync
+        window.addEventListener('storage', function(e) {
+          if (e.key === KEY) apply(e.newValue || 'system');
+        });
+      })();
+
+      // Apply saved text size class before first paint to avoid flash
+      (() => {
+        try {
+          const KEY = 'textSize'; // 's' | 'm' | 'l'
+          const html = document.documentElement;
+          const saved = localStorage.getItem(KEY) || 'm';
+          const val = saved === 's' || saved === 'l' ? saved : 'm';
+          html.classList.remove('text-size-s', 'text-size-m', 'text-size-l');
+          html.classList.add(`text-size-${val}`);
+        } catch {
+          // Default to medium if storage not available
+          document.documentElement.classList.add('text-size-m');
+        }
+      })();
+
+      // Language suggestion banner (replaces auto-redirect)
+      (() => {
+          try {
+            const cfgEl = document.getElementById('lang-config');
+          if (!cfgEl) return;
+          const raw = (cfgEl.textContent || '').trim();
+          if (!raw || raw[0] !== '{') return;
+          const { supported, defaultLang } = JSON.parse(raw);
+
+          const parts = location.pathname.split('/').filter(Boolean);
+          const current = supported.includes(parts[0]) ? parts[0] : defaultLang;
+
+          // Respect a prior dismissal
+          try {
+            if (localStorage.getItem('i18n:suppressPrompt') === '1') return;
+          } catch { /* ignore */ }
+
+          // Find a preferred language different from current
+          const prefs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language]).map((p) => (p || '').split('-')[0]);
+          const preferred = prefs.find((p) => supported.includes(p) && p !== current);
+          if (!preferred) return;
+
+          // Build banner UI
+          const langLabel = (() => {
+            try {
+              // Try to map preferred code to a human label using a data attribute list injected server-side if available
+              return preferred.toUpperCase();
+            } catch {
+              return preferred.toUpperCase();
+            }
+          })();
+
+          const container = document.createElement('div');
+          container.id = 'lang-suggestion-banner';
+          container.className = 'fixed right-4 bottom-4 z-[70] max-w-md';
+
+          const panel = document.createElement('div');
+          panel.className = 'border-muted bg-surface text-content shadow-lg rounded-lg border p-3';
+          panel.setAttribute('role', 'region');
+          panel.setAttribute('aria-label', 'Language suggestion');
+
+          const text = document.createElement('div');
+          text.className = 'mb-3';
+          text.textContent = `View this page in ${langLabel}?`;
+
+          const actions = document.createElement('div');
+          actions.className = 'flex items-center gap-2';
+
+          const switchBtn = document.createElement('button');
+          switchBtn.type = 'button';
+          switchBtn.className = 'bg-primary text-primary-content rounded px-3 py-1 text-sm hover:opacity-90';
+          switchBtn.textContent = 'Switch';
+          switchBtn.addEventListener('click', () => {
+            const newPath = `/${preferred}${current === defaultLang ? location.pathname : '/' + parts.slice(1).join('/')}`;
+            location.assign(newPath + location.search + location.hash);
+          });
+
+          const dismissBtn = document.createElement('button');
+          dismissBtn.type = 'button';
+          dismissBtn.className = 'rounded px-3 py-1 text-sm hover:bg-muted';
+          dismissBtn.textContent = 'Dismiss';
+          dismissBtn.addEventListener('click', () => {
+            try { localStorage.setItem('i18n:suppressPrompt', '1'); } catch { /* ignore */ }
+            container.remove();
+          });
+
+          actions.appendChild(switchBtn);
+          actions.appendChild(dismissBtn);
+          panel.appendChild(text);
+          panel.appendChild(actions);
+          container.appendChild(panel);
+
+          document.body.appendChild(container);
+        } catch {
+          // ignore
+        }
+      })();
+    </script>
+  </head>
+
+  <body class="flex min-h-screen flex-col">
+    {
+      readingProgress && (
+        <div
+          id="reading-progress"
+          class="pointer-events-none fixed left-0 top-0 z-[100] h-1 bg-primary w-0"
+          role="progressbar"
+          aria-hidden="true"
+          aria-label="Reading progress"
+        />
+      )
+    }
+    <a
+      href="#content"
+      class="sr-only rounded bg-surface px-3 py-2 text-sm shadow focus:not-sr-only focus:absolute focus:left-2 focus:top-2"
+      >Skip to content</a
+    >
+
+    <Header lang={currentLang} />
+    <SearchOverlay lang={currentLang} client:load />
+
+    <main id="content" class="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
+      <!-- Focus mode exit removed from UI -->
+      {
+        hasSidebar ? (
+          sidebarPosition === 'left' ? (
+            <div class="grid gap-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
+              <aside class={"hidden lg:block lg:self-start " + (sidebarSticky ? ("lg:sticky " + sidebarTopClass) : "")}>
+                <slot name="sidebar" />
+              </aside>
+              <div>
+                <slot />
+              </div>
+            </div>
+          ) : (
+            <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_16rem]">
+              <div>
+                <slot />
+              </div>
+              <aside class={"hidden lg:block lg:self-start " + (sidebarSticky ? ("lg:sticky " + sidebarTopClass) : "")}>
+                <slot name="sidebar" />
+              </aside>
+            </div>
+          )
+        ) : (
+          <slot />
+        )
+      }
+    </main>
+
+    <Footer />
+
+    <!-- Global back-to-top button as a React island -->
+    <div class="fixed right-4 bottom-4 z-[60] safe-edges">
+      <BackToTopButton client:load className="bg-surface/70 text-content border border-muted hover:bg-muted/60 rounded-full px-3 py-2" />
+    </div>
+
+    <script>
+      // Focus mode UI removed
+      // theme toggle handled inside Header component
+
+      // Add copy-to-clipboard buttons to code blocks
+      document.querySelectorAll("pre").forEach((pre) => {
+        // Avoid duplicating buttons on hydration/navigation
+        if (pre.querySelector(".copy-btn")) return;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "copy-btn";
+        button.setAttribute('aria-label', 'Copy code');
+        button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M16 1H4c-1.1 0-2 .9-2 2v12h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+        button.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(pre.innerText);
+            const old = button.innerHTML;
+            button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M9 16.2l-3.5-3.5L4 14.2l5 5 12-12-1.5-1.5z"/></svg>';
+            setTimeout(() => (button.textContent = "Copy"), 2000);
+            setTimeout(() => (button.innerHTML = old), 2000);
+          } catch (_err) {
+            const old = button.innerHTML;
+            button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>';
+            setTimeout(() => (button.innerHTML = old), 2000);
+          }
+        });
+        pre.appendChild(button);
+      });
+
+      // Reading progress bar (update CSS var and inline width for robustness)
+      const progressBar = document.getElementById("reading-progress");
+      if (progressBar) {
+        const updateProgress = () => {
+          const scrollTop = window.scrollY || document.documentElement.scrollTop;
+          const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+          const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+          const value = progress.toFixed(2) + '%';
+          // CSS variable used by global.css, inline width as fallback
+          document.documentElement.style.setProperty('--reading-progress', value);
+          progressBar.style.width = value;
+        };
+        updateProgress();
+        ["scroll", "resize", "load"].forEach((evt) => window.addEventListener(evt, updateProgress));
+      }
+
+      // Mark external links site-wide and set rel attrs for safety
+      (() => {
+        const links = document.querySelectorAll('a[href]');
+        links.forEach((a) => {
+          try {
+            const href = a.getAttribute('href');
+            if (!href) return;
+            // Skip in-page, tel, and mailto links
+            if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+            const url = new URL(href, location.href);
+            if (url.origin !== location.origin) {
+              a.classList.add('external-link');
+              a.setAttribute('rel', 'noopener noreferrer');
+              a.setAttribute('target', '_blank');
+            }
+          } catch {
+            // ignore malformed hrefs
+          }
+        });
+      })();
+
+      // Add language label badges to code blocks
+      (() => {
+        const codeBlocks = document.querySelectorAll('pre code[class^="language-"]');
+        codeBlocks.forEach((code) => {
+          const parent = code.closest('pre');
+          if (!parent || parent.querySelector('.lang-badge')) return;
+          const cls = Array.from(code.classList).find((c) => c.startsWith('language-')) || '';
+          const lang = cls.replace('language-', '') || 'text';
+          const badge = document.createElement('span');
+          badge.className = 'lang-badge';
+          badge.textContent = lang.toUpperCase();
+          parent.appendChild(badge);
+        });
+      })();
+
+      // Seasonal theme application (disabled by default). To enable, set localStorage 'seasonal-theme'.
+      (() => {
+        try {
+          const key = 'seasonal-theme';
+          const themeId = localStorage.getItem(key);
+          if (themeId) {
+            document.documentElement.classList.add(`theme-${themeId}`);
+          }
+        } catch { /* ignore */ }
+      })();
+
+      // Dev-only: warn about images missing alt text in article content
+      (() => {
+        if (import.meta.env?.DEV !== true) return;
+        const container = document.querySelector('.prose');
+        if (!container) return;
+        container.querySelectorAll('img:not([alt])').forEach((img) => {
+          try { console.warn('Image missing alt text:', img.getAttribute('src')); } catch { /* no-op */ }
+        });
+      })();
+
+      // Subtle page fade in/out for navigation (respects reduced motion)
+      (() => {
+        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        // Remove preload class to trigger fade-in
+        document.documentElement.classList.remove('preload');
+
+        if (prefersReduced) return;
+
+        document.addEventListener(
+          'click',
+          (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            const anchor = target.closest('a');
+            if (!anchor) return;
+            if (anchor.hasAttribute('data-no-fade')) return;
+            if (anchor.target === '_blank' || anchor.hasAttribute('download')) return;
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            const href = anchor.getAttribute('href');
+            if (!href) return;
+            if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+            let url;
+            try {
+              url = new URL(href, location.href);
+            } catch {
+              return;
+            }
+            if (url.origin !== location.origin) return;
+            if (url.pathname === location.pathname && url.search === location.search) return;
+
+            event.preventDefault();
+            document.documentElement.classList.add('fade-out');
+            setTimeout(() => {
+              location.href = url.href;
+            }, 140);
+          },
+          { capture: true }
+        );
+      })();
+    </script>
+    <!-- Lazy-load Mermaid only if the page contains mermaid code blocks -->
+    <script is:inline>
+      (async () => {
+        try {
+          const hasMermaid = !!document.querySelector('pre code.language-mermaid, .mermaid');
+          if (!hasMermaid) return;
+          const mermaid = (await import('mermaid')).default;
+          mermaid.initialize({ startOnLoad: true, theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default' });
+        } catch {
+          // ignore
+        }
+      })();
+    </script>
+    <!-- Lazy-load medium-zoom only when there are images in prose -->
+    <script is:inline>
+      (async () => {
+        try {
+          const hasImgs = !!document.querySelector('.prose img');
+          if (!hasImgs) return;
+          // Use an absolute path so the browser can resolve it under the dev server
+          const mod = await import('/src/scripts/zoom.ts');
+          if (mod && typeof mod.initMediumZoom === 'function') mod.initMediumZoom();
+        } catch {
+          // ignore
+        }
+      })();
+    </script>
+    <!-- RelatedService is imported dynamically from the post page script; no static src path here -->
+  </body>
+</html>

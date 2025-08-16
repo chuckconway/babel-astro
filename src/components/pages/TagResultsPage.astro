@@ -1,0 +1,29 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PostList from "../../components/PostList.astro";
+import { DEFAULT_LANG } from "../../config.i18n";
+import { getPostsByTag } from "../../services/PostService";
+
+interface Props {
+  tag: string;
+  lang?: string;
+}
+
+const { tag, lang = DEFAULT_LANG } = Astro.props as Props;
+const posts = await getPostsByTag(tag, lang);
+---
+
+<Layout title={`Posts tagged "${tag}"`}>
+  <div class="prose prose-lg mx-auto p-4 dark:prose-invert text-content">
+    <h1 class="not-prose page-title mb-6 text-content">#{tag}</h1>
+    {
+      posts.length ? (
+        <PostList posts={posts} lang={lang} />
+      ) : (
+        <p class="not-prose">No posts found for this tag.</p>
+      )
+    }
+  </div>
+</Layout>
+
+

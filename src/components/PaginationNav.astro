@@ -1,0 +1,38 @@
+---
+export interface Props {
+  currentPage: number;
+  totalPages: number;
+  prevHref?: string;
+  nextHref?: string;
+  /** Additional classes to apply to the nav wrapper */
+  class?: string;
+}
+const {
+  currentPage,
+  totalPages,
+  prevHref,
+  nextHref,
+  class: wrapperClass = "",
+} = Astro.props as Props;
+---
+<nav class={`mt-10 flex items-center justify-center gap-4 ${wrapperClass}`.trim()}>
+  {prevHref && (
+    <a
+      href={prevHref}
+      aria-label="Previous page"
+      class="text-sm text-muted-content hover:underline"
+    >
+      &larr;
+    </a>
+  )}
+  <span class="text-sm text-muted-content">{currentPage} of {totalPages}</span>
+  {nextHref && (
+    <a
+      href={nextHref}
+      aria-label="Next page"
+      class="text-sm text-muted-content hover:underline"
+    >
+      &rarr;
+    </a>
+  )}
+</nav> 

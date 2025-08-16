@@ -1,0 +1,41 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PostList from "../PostList.astro";
+import PaginationNav from "../PaginationNav.astro";
+import { PAGE_SIZE } from "../../config";
+import { t } from "../../i18n";
+import { getSortedPosts } from '../../services/PostService';
+import { pagePath } from '../../utils/urls';
+
+interface Props {
+  lang: string;
+}
+
+const { lang } = Astro.props;
+const posts = await getSortedPosts(lang);
+
+const pagedPosts = posts.slice(0, PAGE_SIZE);
+const totalPages = Math.ceil(posts.length / PAGE_SIZE);
+---
+
+<Layout title={t('page.index', lang)}>
+  <div class="mx-auto p-4">
+    <section class="prose max-w-none mb-8 dark:prose-invert text-content">
+      <h1 class="not-prose page-title mb-2 quiet-bold">{t('home.intro_title', lang) || 'Hi, I\'m Chuck.'}</h1>
+      <p class="intro-body">{t('home.intro_body', lang) || 'I\'m a software engineer focused on developer experience and generative AI. Here I write about practical engineering, AI, and the craft of building things.'}</p>
+    </section>
+
+    <p class="not-prose eyebrow mb-2">{t('page.posts', lang)}</p>
+    <PostList posts={pagedPosts} lang={lang} />
+  </div>
+
+  {
+    totalPages > 1 && (
+      <PaginationNav
+        currentPage={1}
+        totalPages={totalPages}
+        nextHref={pagePath(lang, 2)}
+      />
+    )
+  }
+</Layout> 

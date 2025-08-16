@@ -1,0 +1,52 @@
+---
+export const prerender = true;
+import Layout from '../../layouts/Layout.astro';
+import PaginationNav from '../../components/PaginationNav.astro';
+import { excerpt } from '../../utils/excerpt';
+import PostList from '../../components/PostList.astro';
+import { PAGE_SIZE } from '../../config';
+import { getSortedPosts, paginatePosts } from '../../services/PostService';
+import { pagePath, indexPath } from '../../utils/urls';
+import { t } from '../../i18n';
+import { DEFAULT_LANG } from '../../config.i18n';
+
+export async function getStaticPaths({ paginate }: { paginate: any }) {
+  const sorted = await getSortedPosts();
+  return paginate(sorted, { pageSize: PAGE_SIZE });
+}
+
+const { page } = Astro.params; // string
+const currentPage = parseInt(page, 10);
+const posts = await getSortedPosts();
+const { pageItems: pagePosts, totalPages } = paginatePosts(posts, currentPage, PAGE_SIZE);
+
+const searchData = pagePosts.map((post) => ({
+  title: post.data.title,
+  description: post.data.description ?? excerpt(post.body),
+  slug: post.id,
+}));
+---
+<Layout title={t('page.posts_page', DEFAULT_LANG).replace('{page}', String(currentPage))}> 
+  <Fragment slot="head">
+    {currentPage > 1 && (
+      <link rel="prev" href={currentPage === 2 ? indexPath(DEFAULT_LANG) : pagePath(DEFAULT_LANG, currentPage - 1)} />
+    )}
+    {currentPage < totalPages && (
+      <link rel="next" href={pagePath(DEFAULT_LANG, currentPage + 1)} />
+    )}
+  </Fragment>
+  <div class="mx-auto p-4">
+    <PostList posts={pagePosts} />
+
+    <PaginationNav
+      currentPage={currentPage}
+      totalPages={totalPages}
+      prevHref={currentPage > 1 ? (currentPage === 2 ? indexPath(DEFAULT_LANG) : pagePath(DEFAULT_LANG, currentPage - 1)) : undefined}
+      nextHref={currentPage < totalPages ? pagePath(DEFAULT_LANG, currentPage + 1) : undefined}
+    />
+
+    <!-- Inject post metadata for potential client-side search on paginated pages -->
+    <!-- prettier-ignore -->
+    <script id="search-data" type="application/json">{JSON.stringify(searchData)}</script>
+  </div>
+</Layout> 

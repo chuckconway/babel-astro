@@ -1,0 +1,15 @@
+---
+export const prerender = true;
+import PostPage from "../../../components/pages/PostPage.astro";
+import { buildTranslatedSlugPathsForCollection } from "../../../utils/routeUtils";
+
+// Build all paths for every translated post (non-default languages only)
+export async function getStaticPaths() {
+  return buildTranslatedSlugPathsForCollection('posts');
+}
+
+const { lang, slug } = Astro.params;
+---
+
+
+<PostPage slug={slug} lang={lang} />

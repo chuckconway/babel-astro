@@ -1,0 +1,29 @@
+# Node dependencies and logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
+/dist/
+/.astro/
+
+# Generated build metadata
+src/build.json
+src/build.ts
+
+# Local environment files
+.env
+.env.*.local
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Cache directories
+.cache/
+.vercel/
+.netlify/ 

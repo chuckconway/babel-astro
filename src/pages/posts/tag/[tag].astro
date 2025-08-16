@@ -1,0 +1,14 @@
+---
+export const prerender = true;
+import TagResultsPage from "../../../components/pages/TagResultsPage.astro";
+import { buildDefaultTagPathsForCollection } from "../../../utils/routeUtils";
+
+export async function getStaticPaths() {
+  return buildDefaultTagPathsForCollection('posts');
+}
+
+const { tag } = Astro.params as { tag: string };
+---
+<TagResultsPage tag={tag} />
+
+

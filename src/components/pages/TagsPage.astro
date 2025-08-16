@@ -1,0 +1,50 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getCollection } from "astro:content";
+import { DEFAULT_LANG } from "../../config.i18n";
+import { t } from "../../i18n";
+
+interface Props {
+  lang: string;
+}
+
+const { lang } = Astro.props;
+const collectionName = lang === DEFAULT_LANG ? "posts" : `posts_${lang}`;
+
+const posts = await getCollection(collectionName);
+const tagCounts = new Map();
+for (const post of posts) {
+  for (const tag of post.data.tags ?? []) {
+    tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+  }
+}
+const tags = Array.from(tagCounts.entries()).sort((a, b) =>
+  a[0].localeCompare(b[0]),
+);
+---
+
+<Layout title={t('page.tags', lang)}>
+  <div class="prose prose-lg mx-auto p-4 dark:prose-invert text-content">
+    <p class="not-prose eyebrow mb-2">{t('page.posts', lang)}</p>
+    <h1 class="not-prose page-title mb-4 text-content quiet-bold">
+      {t('tags.title', lang)}
+    </h1>
+    <ul class="not-prose flex list-none flex-wrap gap-4 pl-0">
+      {
+        tags.map(([tag, count]) => (
+          <li>
+            <a
+              href={`/${lang !== DEFAULT_LANG ? `${lang}/` : ""}posts/tag/${tag}/`}
+              class="inline-block px-3 py-1 rounded hover:underline"
+            >
+              #{tag}{" "}
+              <span class="text-sm text-muted-content">
+                ({count})
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</Layout> 

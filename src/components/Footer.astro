@@ -1,0 +1,25 @@
+---
+import { SUPPORTED_LANGS, DEFAULT_LANG } from "../config.i18n";
+import { t } from "../i18n";
+import { BUILD } from "../build";
+
+// Determine current language from path to prefix links
+const segments = Astro.url.pathname.split("/").filter(Boolean);
+const currentLang = SUPPORTED_LANGS.some((l) => l.code === segments[0]) ? segments[0] : DEFAULT_LANG;
+const langPrefix = currentLang === DEFAULT_LANG ? "" : `/${currentLang}`;
+
+// Format build as YYYY.MM.DD.build
+const builtDate = BUILD.builtAt ? new Date(BUILD.builtAt) : new Date();
+const yyyy = builtDate.getUTCFullYear();
+const mm = String(builtDate.getUTCMonth() + 1).padStart(2, "0");
+const dd = String(builtDate.getUTCDate()).padStart(2, "0");
+const buildDisplay = `${yyyy}.${mm}.${dd}.${BUILD.build}`;
+---
+
+<footer>
+  <div class="mx-auto max-w-2xl p-4 text-center text-sm text-muted-content">
+    © {new Date().getFullYear()} {t('site.title', currentLang)}, <span class="opacity-70">{buildDisplay}</span> ·
+    <a href={`${langPrefix}/posts/tags`} class="hover:underline">{t('footer.tags', currentLang)}</a> ·
+    <a href={`${langPrefix}/posts/archive`} class="hover:underline">{t('footer.archive', currentLang)}</a>
+  </div>
+</footer>

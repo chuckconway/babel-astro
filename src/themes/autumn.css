@@ -1,0 +1,15 @@
+/* Autumn theme (light and dark variants) */
+.theme-autumn {
+  --surface: 99% 0 100;
+  --muted: 92% 0 0;
+  --link-color: 63% 0.18 55;
+  --link-hover-color: 56% 0.22 55;
+}
+.dark.theme-autumn {
+  --surface: 20% 0 0;
+  --muted: 30% 0 0;
+  --link-color: 78% 0.16 55;
+  --link-hover-color: 86% 0.16 55;
+}
+
+

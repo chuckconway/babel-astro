@@ -1,0 +1,15 @@
+/* Winter theme (light and dark variants) */
+.theme-winter {
+  --surface: 99% 0 100;
+  --muted: 94% 0 0;
+  --link-color: 62% 0.12 250;
+  --link-hover-color: 55% 0.16 250;
+}
+.dark.theme-winter {
+  --surface: 18% 0 0;
+  --muted: 28% 0 0;
+  --link-color: 75% 0.12 250;
+  --link-hover-color: 82% 0.12 250;
+}
+
+
