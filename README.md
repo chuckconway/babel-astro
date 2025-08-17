@@ -67,13 +67,17 @@ Open `http://localhost:4321` in your browser. You now have a working blog.
 
 - Edit your site’s name and tagline:
   - Open `src/i18n/en.json` and change `site.title` and `site.tagline`.
-- Edit your site description (used for SEO):
-  - Open `src/config.ts` and change `SITE.description`.
+- Edit your site description (used for SEO by default):
+  - The default description comes from the localized `site.tagline` in `src/i18n/<lang>.json`.
+  - To customize a specific page/post, pass a `description` prop to the page layout or set `description` in the post front‑matter.
 - Choose a default theme:
   - Open `src/config.ts` and set `DEFAULT_THEME` to one of the files in `src/themes` (e.g. `"default"`, `"spring"`).
 - Optional social image and logo:
   - Add a file at `public/social.png` for link previews.
   - Replace files in `public/logo/` if you want custom logo assets.
+  - Set your site favicon in `src/config.ts`:
+    - Add your icon file under `public/` (e.g. `/logo/site-logo.svg`, `/images/favicon.png`, or `/favicon.ico`).
+    - Edit `SITE.favicon` in `src/config.ts` to point to your file path. The layout will auto-detect the correct MIME type for `.svg`, `.png`, or `.ico`.
 
 - Author footer blurb (bottom of post):
   - Component: `src/components/AuthorFooter.astro`

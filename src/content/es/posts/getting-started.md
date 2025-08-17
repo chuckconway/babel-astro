@@ -1,8 +1,9 @@
 ---
-title: "Comenzando"
+title: "Primeros Pasos"
 date: 2025-01-02
 description: "Cómo agregar publicaciones y configurar tu sitio."
-tags: ["comenzando"]
+tags: ["primeros-pasos"]
+ogImage: "/src/content/assets/posts/2025/DSC0198-scaled.jpg"
 ---
 
 1. Agrega archivos Markdown a `src/content/posts`.

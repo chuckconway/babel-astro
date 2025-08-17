@@ -3,6 +3,7 @@ import { getCollection } from "astro:content";
 
 import { SITE } from "../../config";
 import { DEFAULT_LANG, SUPPORTED_LANGS } from "../../config.i18n";
+import { t } from "../../i18n";
 import { excerpt } from "../../utils/excerpt";
 
 export async function getStaticPaths() {
@@ -22,8 +23,8 @@ export async function GET({ params }) {
   const prefix = lang === DEFAULT_LANG ? "" : `/${lang}`;
 
   return rss({
-    title: `${SITE.title} (${lang})`,
-    description: SITE.description,
+    title: t('site.title', lang),
+    description: t('site.tagline', lang),
     site: SITE.site,
     stylesheet: undefined,
     items: posts.map((post) => ({

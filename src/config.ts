@@ -9,10 +9,9 @@ if (!PUBLIC_SITE_URL) {
 
 export const SITE = {
   site: PUBLIC_SITE_URL,
-  title: "Insights & Iterations",
-  description:
-    "After 30 years of for-loops and functions, I'm iterating on something different: making sense of AI. Join me for technical explorations, everyday applications, and thoughtful reflections on what it all means.",
-  tagline: "Making sense of AI: technical, everyday, & reflections.",
+  // Path under /public to your favicon file (e.g. svg, png, or ico)
+  // Example: "/logo/site-logo.svg" or "/images/favicon.png"
+  favicon: "/logo/site-logo.svg",
 };
 
 // Default excerpt length (in characters) used when posts lack a description.

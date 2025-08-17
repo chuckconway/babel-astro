@@ -33,7 +33,7 @@ try {
 
 // Allow pages to opt-in to the reading progress bar
 const {
-  title = SITE.title,
+  title,
   description,
   image,
   canonical,
@@ -49,6 +49,17 @@ const currentLang = SUPPORTED_LANGS.some((l) => l.code === segments[0]) ? segmen
 
 // Detect whether the caller provided sidebar content
 const hasSidebar = Astro.slots.has("sidebar");
+
+// Resolve favicon from config with simple MIME type detection
+const faviconHref = SITE.favicon || "/logo/site-logo.svg";
+const lowerFavicon = String(faviconHref).toLowerCase();
+const faviconType = lowerFavicon.endsWith('.svg')
+  ? 'image/svg+xml'
+  : lowerFavicon.endsWith('.png')
+    ? 'image/png'
+    : lowerFavicon.endsWith('.ico')
+      ? 'image/x-icon'
+      : 'image/x-icon';
 ---
 
 <!doctype html>
@@ -61,7 +72,7 @@ const hasSidebar = Astro.slots.has("sidebar");
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d0d0d" />
     <!-- Use local font to avoid hard-coded external URL; configured via Tailwind fontFamily -->
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="/logo/site-logo.svg" />
+    <link rel="icon" type={faviconType} href={faviconHref} />
     <!-- Preload primary text fonts to avoid header title size flash -->
     <link rel="preload" as="font" href={inter400Url} type="font/woff2" crossorigin />
     <link rel="preload" as="font" href={inter600Url} type="font/woff2" crossorigin />

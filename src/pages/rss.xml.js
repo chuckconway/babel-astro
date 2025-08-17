@@ -2,6 +2,8 @@ import rss from "@astrojs/rss";
 import { getCollection } from "astro:content";
 
 import { SITE } from "../config";
+import { DEFAULT_LANG } from "../config.i18n";
+import { t } from "../i18n";
 import { excerpt } from "../utils/excerpt";
 
 export async function GET() {
@@ -11,8 +13,8 @@ export async function GET() {
     .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 
   return rss({
-    title: SITE.title,
-    description: SITE.description,
+    title: t('site.title', DEFAULT_LANG),
+    description: t('site.tagline', DEFAULT_LANG),
     site: SITE.site,
     items: posts.map((post) => ({
       link: `/posts/${post.id}/`,
